@@ -15,23 +15,17 @@ import com.aliyun.openservices.log.request.ListShardRequest;
 import com.aliyun.openservices.log.request.PutLogsRequest;
 import com.aliyun.openservices.log.response.ListShardResponse;
 import com.aliyun.openservices.log.response.PutLogsResponse;
-
-import org.apache.commons.codec.digest.Md5Crypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.security.provider.MD5;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 /**
  * SLS 写插件
+ *
  * @author
  */
 public class LogHubWriter extends Writer {
@@ -49,13 +43,13 @@ public class LogHubWriter extends Writer {
             info(LOG, "loghub writer job init end.");
         }
 
-        private void validateParameter(Configuration conf){
-            conf.getNecessaryValue(Key.ENDPOINT,LogHubWriterErrorCode.REQUIRE_VALUE);
-            conf.getNecessaryValue(Key.ACCESS_KEY_ID,LogHubWriterErrorCode.REQUIRE_VALUE);
-            conf.getNecessaryValue(Key.ACCESS_KEY_SECRET,LogHubWriterErrorCode.REQUIRE_VALUE);
-            conf.getNecessaryValue(Key.PROJECT,LogHubWriterErrorCode.REQUIRE_VALUE);
-            conf.getNecessaryValue(Key.LOG_STORE,LogHubWriterErrorCode.REQUIRE_VALUE);
-            conf.getNecessaryValue(Key.COLUMN,LogHubWriterErrorCode.REQUIRE_VALUE);
+        private void validateParameter(Configuration conf) {
+            conf.getNecessaryValue(Key.ENDPOINT, LogHubWriterErrorCode.REQUIRE_VALUE);
+            conf.getNecessaryValue(Key.ACCESS_KEY_ID, LogHubWriterErrorCode.REQUIRE_VALUE);
+            conf.getNecessaryValue(Key.ACCESS_KEY_SECRET, LogHubWriterErrorCode.REQUIRE_VALUE);
+            conf.getNecessaryValue(Key.PROJECT, LogHubWriterErrorCode.REQUIRE_VALUE);
+            conf.getNecessaryValue(Key.LOG_STORE, LogHubWriterErrorCode.REQUIRE_VALUE);
+            conf.getNecessaryValue(Key.COLUMN, LogHubWriterErrorCode.REQUIRE_VALUE);
         }
 
         @Override
@@ -92,6 +86,7 @@ public class LogHubWriter extends Writer {
         private String source;
         private boolean isHashKey;
         private List<Shard> shards;
+
         public void init() {
             this.taskConfig = super.getPluginJobConf();
             String endpoint = taskConfig.getString(Key.ENDPOINT);
@@ -99,20 +94,21 @@ public class LogHubWriter extends Writer {
             String accessKeySecret = taskConfig.getString(Key.ACCESS_KEY_SECRET);
             project = taskConfig.getString(Key.PROJECT);
             logStore = taskConfig.getString(Key.LOG_STORE);
-            topic = taskConfig.getString(Key.TOPIC,"");
-            columnList = taskConfig.getList(Key.COLUMN,String.class);
-            batchSize = taskConfig.getInt(Key.BATCH_SIZE,1024);
-            timeCol = taskConfig.getString(Key.TIME,"");
-            timeFormat = taskConfig.getString(Key.TIME_FORMAT,"");
-            source = taskConfig.getString(Key.SOURCE,"");
-            isHashKey = taskConfig.getBool(Key.HASH_BY_KEY,false);
+            topic = taskConfig.getString(Key.TOPIC, "");
+            columnList = taskConfig.getList(Key.COLUMN, String.class);
+            batchSize = taskConfig.getInt(Key.BATCH_SIZE, 1024);
+            timeCol = taskConfig.getString(Key.TIME, "");
+            timeFormat = taskConfig.getString(Key.TIME_FORMAT, "");
+            source = taskConfig.getString(Key.SOURCE, "");
+            isHashKey = taskConfig.getBool(Key.HASH_BY_KEY, false);
             logHubClient = new Client(endpoint, accessKeyId, accessKeySecret);
             if (isHashKey) {
                 listShard();
                 info(LOG, "init loghub writer with hash key mode.");
             }
             if (LOG.isInfoEnabled()) {
-                LOG.info("init loghub writer task finished.project:{} logstore:{} topic:{} batchSize:{}",project,logStore,topic,batchSize);
+                LOG.info("init loghub writer task finished.project:{} logstore:{} topic:{} batchSize:{}", project,
+                        logStore, topic, batchSize);
             }
         }
 
@@ -121,7 +117,7 @@ public class LogHubWriter extends Writer {
          */
         private void listShard() {
             try {
-                ListShardResponse response = logHubClient.ListShard(new ListShardRequest(project,logStore));
+                ListShardResponse response = logHubClient.ListShard(new ListShardRequest(project, logStore));
                 shards = response.GetShards();
                 if (LOG.isInfoEnabled()) {
                     LOG.info("Get shard count:{}", shards.size());
@@ -144,11 +140,11 @@ public class LogHubWriter extends Writer {
 
                 DateFormat sdf = new SimpleDateFormat(timeFormat);
                 Date date = sdf.parse(v);
-                return (int)(date.getTime()/1000);
+                return (int) (date.getTime() / 1000);
             } catch (Exception e) {
                 LOG.warn("Format time failed!", e);
             }
-            return (int)(((new Date())).getTime()/1000);
+            return (int) (((new Date())).getTime() / 1000);
         }
 
         @Override
@@ -196,11 +192,13 @@ public class LogHubWriter extends Writer {
                     logMap.get(hashKey).add(logItem);
 
                     if (logMap.get(hashKey).size() % batchSize == 0) {
-                        PutLogsRequest request = new PutLogsRequest(project, logStore, topic, source, logMap.get(hashKey), hashKey);
+                        PutLogsRequest request = new PutLogsRequest(project, logStore, topic, source,
+                                logMap.get(hashKey), hashKey);
                         PutLogsResponse response = putLog(request);
                         count += logMap.get(hashKey).size();
                         if (LOG.isDebugEnabled()) {
-                            LOG.debug("record count:{}, request id:{}", logMap.get(hashKey).size(), response.GetRequestId());
+                            LOG.debug("record count:{}, request id:{}", logMap.get(hashKey).size(),
+                                    response.GetRequestId());
                         }
                         logMap.get(hashKey).clear();
                     }
@@ -209,11 +207,13 @@ public class LogHubWriter extends Writer {
                 for (Map.Entry<String, List<LogItem>> entry : logMap.entrySet()) {
                     if (!entry.getValue().isEmpty()) {
                         // 将剩余的数据发送
-                        PutLogsRequest request = new PutLogsRequest(project, logStore, topic, source, entry.getValue(), entry.getKey());
+                        PutLogsRequest request = new PutLogsRequest(project, logStore, topic, source,
+                                entry.getValue(), entry.getKey());
                         PutLogsResponse response = putLog(request);
                         count += entry.getValue().size();
                         if (LOG.isDebugEnabled()) {
-                            LOG.debug("record count:{}, request id:{}", entry.getValue().size(), response.GetRequestId());
+                            LOG.debug("record count:{}, request id:{}", entry.getValue().size(),
+                                    response.GetRequestId());
                         }
                         entry.getValue().clear();
                     }
@@ -233,14 +233,14 @@ public class LogHubWriter extends Writer {
             try {
                 while ((record = receiver.getFromReader()) != null) {
                     LogItem logItem = new LogItem();
-                    if(record.getColumnNumber() != columnList.size()){
-                        this.getTaskPluginCollector().collectDirtyRecord(record,"column not match");
+                    if (record.getColumnNumber() != columnList.size()) {
+                        this.getTaskPluginCollector().collectDirtyRecord(record, "column not match");
                     }
                     for (int i = 0; i < record.getColumnNumber(); i++) {
                         String colName = columnList.get(i);
                         String colValue = record.getColumn(i).asString();
                         logItem.PushBack(colName, colValue);
-                        if(colName.equals(timeCol)){
+                        if (colName.equals(timeCol)) {
                             logItem.SetTime(getTime(colValue));
                         }
                     }
@@ -273,11 +273,11 @@ public class LogHubWriter extends Writer {
             }
         }
 
-        private PutLogsResponse putLog(final PutLogsRequest request) throws Exception{
+        private PutLogsResponse putLog(final PutLogsRequest request) throws Exception {
             final Client client = this.logHubClient;
 
             return RetryUtil.executeWithRetry(new Callable<PutLogsResponse>() {
-                public PutLogsResponse call() throws LogException{
+                public PutLogsResponse call() throws LogException {
                     return client.PutLogs(request);
                 }
             }, 3, 1000L, false);

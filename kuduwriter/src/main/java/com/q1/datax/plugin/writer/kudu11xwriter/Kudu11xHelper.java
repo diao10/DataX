@@ -1,6 +1,5 @@
 package com.q1.datax.plugin.writer.kudu11xwriter;
 
-import com.alibaba.datax.common.element.Column;
 import com.alibaba.datax.common.exception.DataXException;
 import com.alibaba.datax.common.util.Configuration;
 import com.alibaba.fastjson2.JSON;
@@ -10,10 +9,8 @@ import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.*;
-import org.apache.kudu.shaded.org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.runtime.Log;
 
 import java.nio.charset.Charset;
 import java.util.*;
@@ -40,8 +37,10 @@ public class Kudu11xHelper {
         try {
             kConfiguration = JSON.parseObject(kuduConfig, HashMap.class);
             Validate.isTrue(kConfiguration != null, "kuduConfig is null!");
-            kConfiguration.put(Key.KUDU_ADMIN_TIMEOUT, kConfiguration.getOrDefault(Key.KUDU_ADMIN_TIMEOUT, Constant.ADMIN_TIMEOUTMS));
-            kConfiguration.put(Key.KUDU_SESSION_TIMEOUT, kConfiguration.getOrDefault(Key.KUDU_SESSION_TIMEOUT, Constant.SESSION_TIMEOUTMS));
+            kConfiguration.put(Key.KUDU_ADMIN_TIMEOUT, kConfiguration.getOrDefault(Key.KUDU_ADMIN_TIMEOUT,
+                    Constant.ADMIN_TIMEOUTMS));
+            kConfiguration.put(Key.KUDU_SESSION_TIMEOUT, kConfiguration.getOrDefault(Key.KUDU_SESSION_TIMEOUT,
+                    Constant.SESSION_TIMEOUTMS));
         } catch (Exception e) {
             throw DataXException.asDataXException(Kudu11xWriterErrorcode.GET_KUDU_CONNECTION_ERROR, e);
         }
@@ -148,7 +147,8 @@ public class Kudu11xHelper {
                 TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
                 new ThreadFactory() {
-                    private final ThreadGroup group = System.getSecurityManager() == null ? Thread.currentThread().getThreadGroup() : System.getSecurityManager().getThreadGroup();
+                    private final ThreadGroup group = System.getSecurityManager() == null ?
+                            Thread.currentThread().getThreadGroup() : System.getSecurityManager().getThreadGroup();
                     private final AtomicInteger threadNumber = new AtomicInteger(1);
 
                     @Override
@@ -209,15 +209,20 @@ public class Kudu11xHelper {
         List<ColumnSchema> columnSchemas = new ArrayList<>();
         Schema schema = null;
         if (columns == null || columns.isEmpty()) {
-            throw DataXException.asDataXException(Kudu11xWriterErrorcode.REQUIRED_VALUE, "column is not defined，eg：column:[{\"name\": \"cf0:column0\",\"type\": \"string\"},{\"name\": \"cf1:column1\",\"type\": \"long\"}]");
+            throw DataXException.asDataXException(Kudu11xWriterErrorcode.REQUIRED_VALUE, "column is not " +
+                    "defined，eg：column:[{\"name\": \"cf0:column0\",\"type\": \"string\"},{\"name\": \"cf1:column1\"," +
+                    "\"type\": \"long\"}]");
         }
         try {
             for (Configuration column : columns) {
 
-                String type = "BIGINT".equals(column.getNecessaryValue(Key.TYPE, Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase()) ||
+                String type = "BIGINT".equals(column.getNecessaryValue(Key.TYPE,
+                        Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase()) ||
                         "LONG".equals(column.getNecessaryValue(Key.TYPE, Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase()) ?
-                        "INT64" : "INT".equals(column.getNecessaryValue(Key.TYPE, Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase()) ?
-                        "INT32" : column.getNecessaryValue(Key.TYPE, Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase();
+                        "INT64" : "INT".equals(column.getNecessaryValue(Key.TYPE,
+                        Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase()) ?
+                        "INT32" :
+                        column.getNecessaryValue(Key.TYPE, Kudu11xWriterErrorcode.REQUIRED_VALUE).toUpperCase();
                 String name = column.getNecessaryValue(Key.NAME, Kudu11xWriterErrorcode.REQUIRED_VALUE);
                 Boolean key = column.getBool(Key.PRIMARYKEY, false);
                 String encoding = column.getString(Key.ENCODING, Constant.ENCODING).toUpperCase();
@@ -268,9 +273,11 @@ public class Kudu11xHelper {
                 List<Configuration> lowerAndUppers = range.getListConfiguration(rangeColum);
                 for (Configuration lowerAndUpper : lowerAndUppers) {
                     PartialRow lower = schema.newPartialRow();
-                    lower.addString(rangeColum, lowerAndUpper.getNecessaryValue(Key.LOWER, Kudu11xWriterErrorcode.REQUIRED_VALUE));
+                    lower.addString(rangeColum, lowerAndUpper.getNecessaryValue(Key.LOWER,
+                            Kudu11xWriterErrorcode.REQUIRED_VALUE));
                     PartialRow upper = schema.newPartialRow();
-                    upper.addString(rangeColum, lowerAndUpper.getNecessaryValue(Key.UPPER, Kudu11xWriterErrorcode.REQUIRED_VALUE));
+                    upper.addString(rangeColum, lowerAndUpper.getNecessaryValue(Key.UPPER,
+                            Kudu11xWriterErrorcode.REQUIRED_VALUE));
                     tableOptions.addRangePartition(lower, upper);
                 }
             }
@@ -308,7 +315,8 @@ public class Kudu11xHelper {
         Long writeBufferSize = configuration.getLong(Key.WRITE_BATCH_SIZE, Constant.DEFAULT_WRITE_BATCH_SIZE);
         configuration.set(Key.WRITE_BATCH_SIZE, writeBufferSize);
 
-        Long mutationBufferSpace = configuration.getLong(Key.MUTATION_BUFFER_SPACE, Constant.DEFAULT_MUTATION_BUFFER_SPACE);
+        Long mutationBufferSpace = configuration.getLong(Key.MUTATION_BUFFER_SPACE,
+                Constant.DEFAULT_MUTATION_BUFFER_SPACE);
         configuration.set(Key.MUTATION_BUFFER_SPACE, mutationBufferSpace);
 
         Boolean isSkipFail = configuration.getBool(Key.SKIP_FAIL, false);
@@ -327,7 +335,7 @@ public class Kudu11xHelper {
                 col.set(Key.INDEX, index);
                 indexFlag++;
             }
-            if(primaryKey != col.getBool(Key.PRIMARYKEY, false)){
+            if (primaryKey != col.getBool(Key.PRIMARYKEY, false)) {
                 primaryKey = col.getBool(Key.PRIMARYKEY, false);
                 primaryKeyFlag++;
             }
@@ -337,7 +345,7 @@ public class Kudu11xHelper {
             throw DataXException.asDataXException(Kudu11xWriterErrorcode.ILLEGAL_VALUE,
                     "\"index\" either has values for all of them, or all of them are null!");
         }
-        if (primaryKeyFlag > 1){
+        if (primaryKeyFlag > 1) {
             throw DataXException.asDataXException(Kudu11xWriterErrorcode.ILLEGAL_VALUE,
                     "\"primaryKey\" must be written in the front！");
         }
@@ -351,7 +359,8 @@ public class Kudu11xHelper {
     public static void truncateTable(Configuration configuration) {
         String kuduConfig = configuration.getString(Key.KUDU_CONFIG);
         String userTable = configuration.getString(Key.TABLE);
-        LOG.info(String.format("Because you have configured truncate is true,KuduWriter begins to truncate table %s .", userTable));
+        LOG.info(String.format("Because you have configured truncate is true,KuduWriter begins to truncate table %s " +
+                ".", userTable));
         KuduClient kuduClient = Kudu11xHelper.getKuduClient(kuduConfig);
 
         try {
