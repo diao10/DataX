@@ -1,4 +1,4 @@
-package com.alibaba.datax.example.streamreader;
+package com.alibaba.datax;
 
 import com.alibaba.datax.example.ExampleContainer;
 import com.alibaba.datax.example.util.PathUtil;
