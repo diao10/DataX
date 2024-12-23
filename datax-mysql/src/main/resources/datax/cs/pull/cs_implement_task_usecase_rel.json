@@ -1,0 +1,60 @@
+{
+  "core": {
+    "container": {
+      "job": {
+        "sleepInterval": 200
+      }
+    }
+  },
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 4
+      },
+      "errorLimit": {
+        "record": 0
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "${mainUsername}",
+            "password": "${mainPassword}",
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "${mainUrl}"
+                ],
+                "querySql": [
+                  "select * from cs_implement_task_usecase_rel where task_id in (${taskIds})"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "mysqlwriter",
+          "parameter": {
+            "username": "${username}",
+            "password": "${password}",
+            "writeMode": "replace",
+            "column": [
+              "*"
+            ],
+            "connection": [
+              {
+                "table": [
+                  "cs_implement_task_usecase_rel"
+                ],
+                "jdbcUrl": "${url}"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+

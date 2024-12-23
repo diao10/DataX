@@ -1,0 +1,60 @@
+{
+  "core": {
+    "container": {
+      "job": {
+        "sleepInterval": 200
+      }
+    }
+  },
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 4
+      },
+      "errorLimit": {
+        "record": 0
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "${username}",
+            "password": "${password}",
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "${url}"
+                ],
+                "querySql": [
+                  "select u.* from cs_bug_usecase_result_rel u left join cs_bug b on b.id = u.bug_id where b.task_id in (${taskIds})"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "mysqlwriter",
+          "parameter": {
+            "username": "${mainUsername}",
+            "password": "${mainPassword}",
+            "writeMode": "replace",
+            "column": [
+              "*"
+            ],
+            "connection": [
+              {
+                "table": [
+                  "cs_bug_usecase_result_rel"
+                ],
+                "jdbcUrl": "${mainUrl}"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+

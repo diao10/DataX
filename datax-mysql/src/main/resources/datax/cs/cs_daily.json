@@ -1,0 +1,63 @@
+{
+  "core": {
+    "container": {
+      "job": {
+        "sleepInterval": 200
+      }
+    }
+  },
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 4
+      },
+      "errorLimit": {
+        "record": 0
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "${username}",
+            "password": "${password}",
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "${url}"
+                ],
+                "querySql": [
+                  "select * from cs_daily where status = 1 and project_id = ${projectId} and daily_user_id = ${dailyUserId}"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "mysqlwriter",
+          "parameter": {
+            "username": "${mainUsername}",
+            "password": "${mainPassword}",
+            "writeMode": "replace",
+            "column": [
+              "*"
+            ],
+            "postSql": [
+              "update cs_daily set status = 2 where status = 1 and project_id = ${projectId} and daily_user_id = ${dailyUserId}"
+            ],
+            "connection": [
+              {
+                "table": [
+                  "cs_daily"
+                ],
+                "jdbcUrl": "${mainUrl}"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,60 @@
+{
+  "core": {
+    "container": {
+      "job": {
+        "sleepInterval": 200
+      }
+    }
+  },
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 4
+      },
+      "errorLimit": {
+        "record": 0
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "${mainUsername}",
+            "password": "${mainPassword}",
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "${mainUrl}"
+                ],
+                "querySql": [
+                  "select * from cs_project_user_rel where project_id in (${projectIds})"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "mysqlwriter",
+          "parameter": {
+            "username": "${username}",
+            "password": "${password}",
+            "writeMode": "replace",
+            "column": [
+              "*"
+            ],
+            "connection": [
+              {
+                "table": [
+                  "cs_project_user_rel"
+                ],
+                "jdbcUrl": "${url}"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+
